@@ -1,0 +1,44 @@
+---
+# tasks file for create-cluster
+
+- name: get avalability zones
+  aws_az_info:
+    profile: kops
+    region: us-east-1
+  register: zones
+
+- debug:
+    var: zones
+
+- name: making list of all zones
+  set_fact:
+    zone: "{{ zones.availability_zones | map(attribute='zone_name')| join(',') }}"
+
+- debug:
+    var: zone
+
+- name: Get the current caller identity information
+  aws_caller_info:
+  register: caller_info
+
+- debug:
+    var: caller_info
+
+
+- name: create cluster
+  shell: "kops create cluster \
+          --name {{ cluster_name }}
+          --bastion {{ bastion }} \
+          --cloud aws \
+          --dns private \
+          --state {{ state_store }}
+          --dns-zone {{ dns_zone }} \
+          --kubernetes-version {{ kubernetes_version }} \
+          --master-count {{ master_count }} \
+          --master-size {{ master_size }} \
+          --master-zones {{ master_zones }} \
+          --node-count {{ node_count }} \
+          --node-size {{ node_size }} \
+          --ssh-public-key {{ ssh_key }} \
+          --topology private \
+          --zones {{ zone }}"
