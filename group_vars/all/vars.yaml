@@ -1,6 +1,6 @@
 bastion: true
 
-dns_zone: k8s.dev.hgadhiya.me
+dns_zone: k8s.dev.paavangopala.me
 
 kubernetes_version:
 
@@ -14,10 +14,12 @@ node_count: 3
 
 node_size: t2.medium
 
-state_store: s3://k8s-dev-hgadhiya-state-store
+state_store: s3://k8s-dev-paavangopala-state-store
 
-cluster_name: k8s.dev.hgadhiya.me
+cluster_name: k8s.dev.paavangopala.me
 
-kubernetes_version: 1.15
+kubernetes_version: 1.17
 
-ssh_key: /home/hemal/.ssh/csye7374.pub
+ssh_key: ~/.ssh/csye7374.pub
+
+kubernetes_networking: calico

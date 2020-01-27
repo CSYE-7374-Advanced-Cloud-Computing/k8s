@@ -26,19 +26,20 @@
 
 
 - name: create cluster
-  shell: "kops create cluster \
-          --name {{ cluster_name }}
-          --bastion {{ bastion }} \
+  shell: "kops update cluster \
+          --name={{ cluster_name }}
+          --bastion={{ bastion }} \
           --cloud aws \
           --dns private \
           --state {{ state_store }}
-          --dns-zone {{ dns_zone }} \
+          --dns-zone={{ dns_zone }} \
           --kubernetes-version {{ kubernetes_version }} \
-          --master-count {{ master_count }} \
-          --master-size {{ master_size }} \
-          --master-zones {{ master_zones }} \
-          --node-count {{ node_count }} \
-          --node-size {{ node_size }} \
-          --ssh-public-key {{ ssh_key }} \
+          --networking={{ kubernetes_networking }} \
+          --master-count={{ master_count }} \
+          --master-size={{ master_size }} \
+          --master-zones={{ master_zones }} \
+          --node-count={{ node_count }} \
+          --node-size={{ node_size }} \
+          --ssh-public-key={{ ssh_key }} \
           --topology private \
-          --zones {{ zone }}"
+          --zones={{ zone }}"
