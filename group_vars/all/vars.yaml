@@ -1,6 +1,6 @@
 bastion: true
 
-dns_zone: k8s.dev.paavangopala.me
+dns_zone:  Z05394181MI3V7289PFNQ
 
 kubernetes_version:
 
@@ -18,7 +18,7 @@ state_store: s3://k8s-dev-paavangopala-state-store
 
 cluster_name: k8s.dev.paavangopala.me
 
-kubernetes_version: 1.17
+kubernetes_version: 1.15.7
 
 ssh_key: ~/.ssh/csye7374.pub
 
