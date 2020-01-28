@@ -1,0 +1,18 @@
+---
+# tasks file for delete-cluster
+- name: Get the current caller identity information
+  aws_caller_info:
+  register: caller_info
+
+- debug:
+    var: caller_info
+    
+- name: delete cluster
+  shell: "kops delete cluster \
+          --name={{ cluster_name }} \
+          --yes \
+          --state={{ state_store }} "
+  register: output
+  until: output.stdout.find('Deleted cluster') != -1
+  retries: 15
+  delay: 60

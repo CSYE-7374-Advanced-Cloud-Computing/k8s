@@ -1,0 +1,7 @@
+---
+- hosts: localhost
+  roles:
+    - create-cluster
+
+  environment:
+    AWS_PROFILE: kops
