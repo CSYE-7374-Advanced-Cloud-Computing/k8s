@@ -25,6 +25,16 @@
 # - debug:
 #     var: caller_info
 
+- block:
+  - name: check if {{ cluster_name }} already exist
+    shell: kops get clusters --state {{ state_store }} {{ cluster_name }}
+    register: kops_get_clusters
+    changed_when: no
+    failed_when: no
+  rescue:
+    - debug:
+        msg: 'Cluster is already present'
+
 - name: create cluster
   shell: "kops create cluster \
           --name={{ cluster_name }}
