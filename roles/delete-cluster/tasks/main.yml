@@ -1,0 +1,12 @@
+---
+# tasks file for delete-cluster
+
+- name: delete cluster
+  shell: "kops delete cluster \
+          --name={{ cluster_name }} \
+          --yes \
+          --state={{ state_store }} "
+  register: output
+  until: output.stdout.find('Deleted cluster') != -1
+  retries: 15
+  delay: 60

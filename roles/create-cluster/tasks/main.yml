@@ -12,18 +12,18 @@
 
 - name: making list of all zones
   set_fact:
-    zone: "{{ zones.availability_zones | map(attribute='zone_name')| join(',') }}"
+    node_zone: "{{ zones.availability_zones[3:6] | map(attribute='zone_name')| join(',') }}"
+    master_zone: "{{ zones.availability_zones[0:3] | map(attribute='zone_name')| join(',') }}"
 
-- debug:
-    var: zone
+# - debug:
+#     var: zone
 
-- name: Get the current caller identity information
-  aws_caller_info:
-  register: caller_info
-
-- debug:
-    var: caller_info
-
+# - name: Get the current caller identity information
+#   aws_caller_info:
+#   register: caller_info
+#
+# - debug:
+#     var: caller_info
 
 - name: create cluster
   shell: "kops create cluster \
@@ -37,19 +37,20 @@
           --networking={{ kubernetes_networking }} \
           --master-count={{ master_count }} \
           --master-size={{ master_size }} \
-          --master-zones={{ master_zones }} \
+          --master-zones={{ master_zone }} \
           --node-count={{ node_count }} \
           --node-size={{ node_size }} \
           --ssh-public-key={{ ssh_key }} \
           --topology private \
-          --zones={{ zone }}"
+          --yes \
+          --zones={{ node_zone }}"
 
-- block:
-  - name: kops update
-    shell: "kops update cluster --state {{ state_store }} --yes --name {{ cluster_name }}"
-  rescue:
-    - debug:
-        msg: 'Error, Maybe due to Elastic IP Limit'
+# - block:
+#   - name: kops update
+#     shell: "kops update cluster --state {{ state_store }} --yes --name {{ cluster_name }}"
+#   rescue:
+#     - debug:
+#         msg: 'Error, Maybe due to Elastic IP Limit'
 
 - name: Verify all Kubernetes Nodes are ready
   shell: "kops validate cluster --name {{ cluster_name }} --state {{ state_store }}"

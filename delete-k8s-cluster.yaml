@@ -1,0 +1,7 @@
+---
+- hosts: localhost
+  roles:
+    - delete-cluster
+
+  environment:
+    AWS_PROFILE: kops
