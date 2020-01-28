@@ -55,13 +55,6 @@
           --yes \
           --zones={{ node_zone }}"
 
-# - block:
-#   - name: kops update
-#     shell: "kops update cluster --state {{ state_store }} --yes --name {{ cluster_name }}"
-#   rescue:
-#     - debug:
-#         msg: 'Error, Maybe due to Elastic IP Limit'
-
 - name: Verify all Kubernetes Nodes are ready
   shell: "kops validate cluster --name {{ cluster_name }} --state {{ state_store }}"
   register: cmd_result
