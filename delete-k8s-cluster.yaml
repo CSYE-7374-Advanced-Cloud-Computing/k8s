@@ -1,6 +1,7 @@
 ---
 - hosts: localhost
   roles:
+    - delete-vpc-peering
     - delete-cluster
 
   environment:

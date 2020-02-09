@@ -1,0 +1,21 @@
+---
+# tasks file for delete-vpc-peering
+
+- name: get vpc peering information
+  ec2_vpc_peering_info:
+    filters:
+        "tag:Name": "my_vpc_peering"
+        "status-code": "active"
+
+  register: peering_connection
+
+- name: save peering id
+  set_fact:
+    peering_id: "{{ peering_connection.result | map(attribute='vpc_peering_connection_id') | join(' ')}}"
+
+- name: Delete vpc peering peering connection
+  ec2_vpc_peer:
+    region: "{{ region }}"
+    peering_id: "{{peering_id}}"
+    state: absent
+  register: vpc_peer_absent
