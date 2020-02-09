@@ -1,6 +1,7 @@
 ---
 - hosts: localhost
   roles:
+    - delete-rds
     - delete-vpc-peering
     - delete-cluster
 
