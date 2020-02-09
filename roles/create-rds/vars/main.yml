@@ -1,2 +1,3 @@
 ---
 # vars file for create-rds
+region: "us-east-1"

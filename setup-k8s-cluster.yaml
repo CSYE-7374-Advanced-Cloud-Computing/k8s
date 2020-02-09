@@ -1,6 +1,7 @@
 ---
 - hosts: localhost
   roles:
+    - create-rds
     - create-cluster
 
   environment:

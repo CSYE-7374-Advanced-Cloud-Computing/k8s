@@ -1,2 +1,39 @@
 ---
 # tasks file for delete-rds
+
+# Delete RDS Instance
+- name: Delete RDS
+  rds:
+    command: delete
+    instance_name: postgres-rds-instance
+    region: "{{region}}"
+  ignore_errors: yes
+
+# Wait for RDS Instance Deletion
+- name: Wait for RDS Instance Deletion
+  rds_instance_facts:
+    db_instance_identifier: postgres-rds-instance
+  register: rds_facts
+  until: rds_facts.instances[0].db_instance_status.find("deleted") != -1
+  retries: 15
+  delay: 75
+  ignore_errors: yes
+
+# Debug
+- debug:
+    var: rds_facts.instances[0].db_instance_status
+
+# Delete RDS Instance Subnets
+- rds_subnet_group:
+    state: absent
+    name: Subnet Group for RDS
+    region: "{{region}}"
+  ignore_errors: yes
+
+# Delete RDS Security Group
+- name: Delete RDS Security Group
+  ec2_group:
+    name: postgresdatabasesecuritygroup
+    description: Postgres DB Security Group
+    state: absent
+  ignore_errors: yes

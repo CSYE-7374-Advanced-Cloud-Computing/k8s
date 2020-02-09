@@ -1,2 +1,3 @@
 ---
 # vars file for delete-rds
+region: "us-east-1"
