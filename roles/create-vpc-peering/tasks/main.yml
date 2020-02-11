@@ -20,18 +20,43 @@
         "tag:Name": "default-igw"
   register: igw_info
 
-- name: Get default vpc subnets
-  ec2_vpc_subnet_facts:
-    filters:
-      vpc-id: "{{default_vpc.vpcs[0].id}}"
-  register: ec2_subnet_info
-
 - name: storing vpc ids
   set_fact:
     default_vpc_id: "{{ default_vpc.vpcs | map(attribute='vpc_id') | join(' ')}}"
     k8s_vpc_id: "{{ k8s_vpc.vpcs | map(attribute='vpc_id') | join(' ')}}"
     k8s_vpc_cidr: "{{ k8s_vpc.vpcs | map(attribute='cidr_block') | join(' ')}}"
+    default_vpc_cidr: "{{ default_vpc.vpcs | map(attribute='cidr_block')| join(' ')}}"
     default_vpc_igw: "{{ igw_info.internet_gateways | map(attribute='internet_gateway_id') | join(' ')}}"
+
+- name: Get default vpc subnets
+  ec2_vpc_subnet_facts:
+    filters:
+      vpc-id: "{{ default_vpc_id }}"
+  register: ec2_subnet_info
+
+- name: get k8s vpc subnets
+  ec2_vpc_subnet_facts:
+    filters:
+      vpc-id: "{{ k8s_vpc_id }}"
+      "tag:SubnetType": "Private"
+  register: k8s_subnet_info
+
+- name: store all private subnet k8s_subnet in a list
+  set_fact:
+    private_subnet_k8s: '{{ k8s_subnet_info.subnets | map(attribute="subnet_id") | list}}'
+
+- name: get all k8s route route_tables
+  ec2_vpc_route_table_info:
+    region: "{{ region }}"
+    filters:
+      vpc-id: "{{ k8s_vpc_id }}"
+      association.subnet-id: "{{item}}"
+  with_items: "{{ private_subnet_k8s }}"
+  register: k8s_rt
+
+- name: " store all k8s private subnet in a list"
+  set_fact:
+    k8s_rt_list: "{{ k8s_rt | json_query('results[*].route_tables[*].id')| flatten }}"
 
 - name: create vpc peering
   ec2_vpc_peer:
@@ -54,7 +79,7 @@
       Name: my_vpc_peering
   register: action_peer
 
-- name: update route table
+- name: update default route table
   ec2_vpc_route_table:
     vpc_id: "{{default_vpc_id}}"
     region: "{{region}}"
@@ -73,3 +98,16 @@
     tags:
       "Name": "default-rt"
     state: present
+
+- name: update default route table
+  ec2_vpc_route_table:
+    vpc_id: "{{k8s_vpc_id}}"
+    region: "{{region}}"
+    lookup: id
+    routes:
+      - dest: "{{default_vpc_cidr}}"
+        vpc_peering_connection_id: "{{ peering_id }}"
+    route_table_id: "{{ item }}"
+    purge_routes: false
+    purge_subnets: false
+  with_items: "{{ k8s_rt_list }}"
