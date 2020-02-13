@@ -55,9 +55,16 @@
           --node-size={{ node_size }} \
           --ssh-public-key={{ ssh_key }} \
           --topology private \
-          --yes \
           --zones={{ node_zone }}"
   when: kops_get_clusters.rc != 0
+
+- block:
+  - name: kops update
+    shell: "kops update cluster --state {{ state_store }} --yes --name {{ cluster_name }}"
+  rescue:
+    - debug:
+        msg: 'Error, usually because of Elastic IP Limit'
+        
 
 - name: Verify all Kubernetes Nodes are ready
   shell: "kops validate cluster --name {{ cluster_name }} --state {{ state_store }}"
