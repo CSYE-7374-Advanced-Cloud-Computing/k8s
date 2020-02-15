@@ -19,6 +19,17 @@
 - debug:
     var: default_vpc.vpcs[0].id
 
+# Get k8s vpc info
+- name: get k8s vpc info
+  ec2_vpc_net_info:
+    filters:
+      "tag:Name": "{{ cluster_name }}"
+  register: k8s_vpc
+
+- name: storing vpc ids
+  set_fact:
+    k8s_vpc_cidr: "{{ k8s_vpc.vpcs | map(attribute='cidr_block') | join(' ')}}"
+
 # Create Security Group for RDS
 - name: Create RDS Security Group
   ec2_group:
@@ -29,7 +40,7 @@
       - proto: tcp
         from_port: 5432
         to_port: 5432
-        cidr_ip: 0.0.0.0/0
+        cidr_ip: "{{k8s_vpc_cidr}}"
   register: security_group_rds #the above facts are stored in this variable
 
 # Debug
