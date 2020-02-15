@@ -1,0 +1,113 @@
+---
+# tasks file for create-rds
+
+# Gathering facts about ec2 vpc's if it exists
+- ec2_vpc_net_facts:
+    region: "{{region}}"
+    filters:
+      "tag:Name": "{{cluster_name}}"
+  register: my_vpc #Get the facts about your vpc in this varible --> my_vpc
+
+# Gathering facts about default vpc
+- ec2_vpc_net_facts:
+    region: "{{region}}"
+    filters:
+      "tag:Name": default
+  register: default_vpc #Get the facts about your vpc in this varible --> default_vpc
+
+# Debug
+- debug:
+    var: default_vpc.vpcs[0].id
+
+# Create Security Group for RDS
+- name: Create RDS Security Group
+  ec2_group:
+    name: postgresdatabasesecuritygroup
+    description: Postgres DB Security Group
+    vpc_id: "{{default_vpc.vpcs[0].id}}" #Assigning Default VPC to RDS Security Group
+    rules:
+      - proto: tcp
+        from_port: 5432
+        to_port: 5432
+        cidr_ip: 0.0.0.0/0
+  register: security_group_rds #the above facts are stored in this variable
+
+# Debug
+- debug:
+    var: security_group_rds.group_id
+
+# Gather EC2 Subnet facts
+- ec2_vpc_subnet_facts:
+    filters:
+      vpc-id: "{{default_vpc.vpcs[0].id}}"
+  register: ec2_subnet_info
+
+# Debug
+- debug:
+    var: ec2_subnet_info.subnets[0].id
+
+# Debug
+- debug:
+    var: ec2_subnet_info.subnets[1].id
+
+# Debug
+- debug:
+    var: ec2_subnet_info.subnets[2].id
+
+# Debug
+- debug:
+    var: ec2_subnet_info.subnets[3].id
+
+# Debug
+- debug:
+    var: ec2_subnet_info.subnets[4].id
+
+# Debug
+- debug:
+    var: ec2_subnet_info.subnets[5].id
+
+
+# Assign Subnet Group to RDS
+- rds_subnet_group:
+    state: present
+    description: Create RDS Subnet Group
+    name: Subnet Group for RDS
+    region: "{{ region }}"
+    subnets:
+      - "{{ec2_subnet_info.subnets[0].id}}"
+      - "{{ec2_subnet_info.subnets[1].id}}"
+      - "{{ec2_subnet_info.subnets[2].id}}"
+      - "{{ec2_subnet_info.subnets[3].id}}"
+      - "{{ec2_subnet_info.subnets[4].id}}"
+      - "{{ec2_subnet_info.subnets[5].id}}"
+  register: rds_subnet_group_addition
+
+# Create RDS Instance
+- name: Create RDS
+  rds:
+    command: create
+    db_name: recipe
+    instance_name: postgres-rds-instance
+    db_engine: postgres
+    engine_version: 11.5
+    size: 20
+    instance_type: db.t2.micro
+    username: postgres
+    password: rootroot
+    vpc_security_groups: "{{security_group_rds.group_id}}"
+    subnet: "{{rds_subnet_group_addition.subnet_group.name}}"
+    publicly_accessible: no
+    region: "{{region}}"
+
+# Wait for RDS Instance to come up
+- name: Waiting for RDS to be ready
+  rds_instance_facts:
+    db_instance_identifier: postgres-rds-instance
+  register: rds_facts
+  until: rds_facts.instances[0].db_instance_status.find("available") != -1
+  retries: 10
+  delay: 75 # Wait for 10*75 mins to get the rds instance up and running
+
+#Debug
+- debug:
+    var: rds_facts.instances[0].db_instance_status

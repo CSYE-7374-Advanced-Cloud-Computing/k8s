@@ -1,0 +1,113 @@
+---
+# tasks file for create-vpc-peering
+
+- name: get default vpc info
+  ec2_vpc_net_info:
+    filters:
+      "tag:Name": default
+  register: default_vpc
+
+- name: get k8s vpc info
+  ec2_vpc_net_info:
+    filters:
+      "tag:Name": "{{ cluster_name }}"
+  register: k8s_vpc
+
+- name: Gather information default Internet Gateways
+  ec2_vpc_igw_info:
+    region: "{{region}}"
+    filters:
+        "tag:Name": "default-igw"
+  register: igw_info
+
+- name: storing vpc ids
+  set_fact:
+    default_vpc_id: "{{ default_vpc.vpcs | map(attribute='vpc_id') | join(' ')}}"
+    k8s_vpc_id: "{{ k8s_vpc.vpcs | map(attribute='vpc_id') | join(' ')}}"
+    k8s_vpc_cidr: "{{ k8s_vpc.vpcs | map(attribute='cidr_block') | join(' ')}}"
+    default_vpc_cidr: "{{ default_vpc.vpcs | map(attribute='cidr_block')| join(' ')}}"
+    default_vpc_igw: "{{ igw_info.internet_gateways | map(attribute='internet_gateway_id') | join(' ')}}"
+
+- name: Get default vpc subnets
+  ec2_vpc_subnet_facts:
+    filters:
+      vpc-id: "{{ default_vpc_id }}"
+  register: ec2_subnet_info
+
+- name: get k8s vpc subnets
+  ec2_vpc_subnet_facts:
+    filters:
+      vpc-id: "{{ k8s_vpc_id }}"
+      "tag:SubnetType": "Private"
+  register: k8s_subnet_info
+
+- name: store all private subnet k8s_subnet in a list
+  set_fact:
+    private_subnet_k8s: '{{ k8s_subnet_info.subnets | map(attribute="subnet_id") | list}}'
+
+- name: get all k8s route route_tables
+  ec2_vpc_route_table_info:
+    region: "{{ region }}"
+    filters:
+      vpc-id: "{{ k8s_vpc_id }}"
+      association.subnet-id: "{{item}}"
+  with_items: "{{ private_subnet_k8s }}"
+  register: k8s_rt
+
+- name: " store all k8s private subnet in a list"
+  set_fact:
+    k8s_rt_list: "{{ k8s_rt | json_query('results[*].route_tables[*].id')| flatten }}"
+
+- name: create vpc peering
+  ec2_vpc_peer:
+    region: "{{ region }}"
+    vpc_id: "{{ default_vpc_id }}"
+    peer_vpc_id: "{{ k8s_vpc_id }}"
+    state: present
+  register: vpc_peer
+
+- name: save peering id
+  set_fact:
+    peering_id: "{{vpc_peer.peering_id}}"
+
+- name: Accept peering connection
+  ec2_vpc_peer:
+    region: "{{ region }}"
+    peering_id: "{{ peering_id }}"
+    state: accept
+    tags:
+      Name: my_vpc_peering
+  register: action_peer
+
+- name: update default route table
+  ec2_vpc_route_table:
+    vpc_id: "{{default_vpc_id}}"
+    region: "{{region}}"
+    subnets:
+      - "{{ec2_subnet_info.subnets[0].id}}"
+      - "{{ec2_subnet_info.subnets[1].id}}"
+      - "{{ec2_subnet_info.subnets[2].id}}"
+      - "{{ec2_subnet_info.subnets[3].id}}"
+      - "{{ec2_subnet_info.subnets[4].id}}"
+      - "{{ec2_subnet_info.subnets[5].id}}"
+    routes:
+      - dest: "{{k8s_vpc_cidr}}"
+        vpc_peering_connection_id: "{{ peering_id }}"
+      - dest: 0.0.0.0/0
+        gateway_id: "{{default_vpc_igw}}"
+    tags:
+      "Name": "default-rt"
+    state: present
+
+- name: update default route table
+  ec2_vpc_route_table:
+    vpc_id: "{{k8s_vpc_id}}"
+    region: "{{region}}"
+    lookup: id
+    routes:
+      - dest: "{{default_vpc_cidr}}"
+        vpc_peering_connection_id: "{{ peering_id }}"
+    route_table_id: "{{ item }}"
+    purge_routes: false
+    purge_subnets: false
+  with_items: "{{ k8s_rt_list }}"
