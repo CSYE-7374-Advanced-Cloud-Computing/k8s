@@ -2,6 +2,8 @@
 - hosts: localhost
   roles:
     - create-cluster
+    - create-rds
+    - create-vpc-peering
 
   environment:
     AWS_PROFILE: kops

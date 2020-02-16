@@ -35,6 +35,9 @@
     - debug:
         msg: 'Cluster is already present'
 
+- debug:
+    var: kops_get_clusters
+
 - name: create cluster
   shell: "kops create cluster \
           --name={{ cluster_name }}
@@ -52,8 +55,16 @@
           --node-size={{ node_size }} \
           --ssh-public-key={{ ssh_key }} \
           --topology private \
-          --yes \
           --zones={{ node_zone }}"
+  when: kops_get_clusters.rc != 0
+
+- block:
+  - name: kops update
+    shell: "kops update cluster --state {{ state_store }} --yes --name {{ cluster_name }}"
+  rescue:
+    - debug:
+        msg: 'Error, usually because of Elastic IP Limit'
+        
 
 - name: Verify all Kubernetes Nodes are ready
   shell: "kops validate cluster --name {{ cluster_name }} --state {{ state_store }}"
@@ -61,3 +72,4 @@
   until: cmd_result.stdout.find('Your cluster ' + cluster_name + ' is ready') != -1
   retries: 10
   delay: 75
+  when: kops_get_clusters.rc != 0
