@@ -1,8 +1,8 @@
 ---
 - hosts: localhost
   roles:
-    - create-rds
     - create-cluster
+    - create-rds
     - create-vpc-peering
 
   environment:
