@@ -1,0 +1,4 @@
+---
+# tasks file for create-metrics-server
+- name: Create Kubernetes Metrics Server
+  command: chdir=~/metrics-chart helm install metrics ./metrics-server

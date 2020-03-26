@@ -1,9 +1,10 @@
 ---
 - hosts: localhost
   roles:
-    - delete-vpc-peering    
+    - delete-vpc-peering
     - delete-rds
+    - delete-metrics-server
     - delete-cluster
 
   environment:
-    AWS_PROFILE: kops
+    AWS_PROFILE: prod

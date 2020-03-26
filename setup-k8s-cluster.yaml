@@ -4,6 +4,7 @@
     - create-cluster
     - create-rds
     - create-vpc-peering
+    - create-metrics-server
 
   environment:
-    AWS_PROFILE: kops
+    AWS_PROFILE: prod
