@@ -3,7 +3,7 @@
 
 - name: get avalability zones
   aws_az_info:
-    profile: kops
+    profile: prod
     region: us-east-1
   register: zones
 
@@ -12,8 +12,8 @@
 
 - name: making list of all zones
   set_fact:
-    node_zone: "{{ zones.availability_zones[3:6] | map(attribute='zone_name')| join(',') }}"
-    master_zone: "{{ zones.availability_zones[0:3] | map(attribute='zone_name')| join(',') }}"
+    node_zone: "{{ zones.availability_zones[0:3] | map(attribute='zone_name')| join(',') }}"
+    master_zone: "{{ zones.availability_zones[0:1] | map(attribute='zone_name')| join(',') }}"
 
 # - debug:
 #     var: zone
@@ -64,7 +64,7 @@
   rescue:
     - debug:
         msg: 'Error, usually because of Elastic IP Limit'
-        
+
 
 - name: Verify all Kubernetes Nodes are ready
   shell: "kops validate cluster --name {{ cluster_name }} --state {{ state_store }}"
