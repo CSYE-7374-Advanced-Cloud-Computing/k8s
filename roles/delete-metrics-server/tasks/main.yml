@@ -1,0 +1,4 @@
+---
+# tasks file for delete-metrics-server
+- name: Delete Kubernetes Metrics Server
+  command: helm uninstall metrics
